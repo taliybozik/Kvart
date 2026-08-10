@@ -31,12 +31,16 @@
   --primary-a:#34d1ff; --primary-b:#4ade9e;
   --radius-l:26px; --radius-m:18px; --radius-s:13px; --radius-xs:9px;
   --safe-t:env(safe-area-inset-top); --safe-b:env(safe-area-inset-bottom);
+  --font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,sans-serif;
 }
+html.font-roboto{ --font-family:Roboto,"Noto Sans","Segoe UI",Arial,sans-serif; }
+html.font-avenir{ --font-family:Avenir,"Avenir Next","Segoe UI",Arial,sans-serif; }
+html.font-helvetica{ --font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{
   position:fixed; inset:0; width:100%; height:100%; overflow:hidden;
   background:var(--bg-0); color:var(--text-0);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,sans-serif;
+  font-family:var(--font-family);
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
 }
 body{font-size:15px; line-height:1.35;}
@@ -323,6 +327,11 @@ input[type=number]{-moz-appearance:textfield;}
 .lang-btn:active{transform:scale(.97);}
 .lang-btn.active{background:linear-gradient(135deg, var(--primary-a), var(--primary-b)); color:#0a0b12;}
 
+.font-switch{display:flex; flex-wrap:wrap; gap:6px; background:var(--glass-fill-soft); border:1px solid var(--glass-border); border-radius:var(--radius-m); padding:6px; margin-bottom:10px;}
+.font-btn{flex:1 1 calc(50% - 3px); padding:10px 8px; border-radius:12px; font-size:13px; font-weight:700; color:var(--text-1); text-align:center; transition:background .2s ease, color .2s ease, transform .12s ease;}
+.font-btn:active{transform:scale(.97);}
+.font-btn.active{background:linear-gradient(135deg, var(--primary-a), var(--primary-b)); color:#0a0b12;}
+
 /* ============================= MODAL ============================= */
 .modal-overlay{
   position:fixed; inset:0; z-index:60; background:rgba(3,4,8,.55);
@@ -382,6 +391,14 @@ input[type=number]{-moz-appearance:textfield;}
     <div class="lang-switch" id="langSwitch">
       <button type="button" class="lang-btn" data-lang="ru">Русский</button>
       <button type="button" class="lang-btn" data-lang="uk">Українська</button>
+    </div>
+
+    <div class="section-label" data-i18n="fontSectionTitle">Шрифт</div>
+    <div class="font-switch" id="fontSwitch">
+      <button type="button" class="font-btn" data-font="system" style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display',system-ui,sans-serif;" data-i18n="fontSystem">Системный</button>
+      <button type="button" class="font-btn" data-font="roboto" style="font-family:Roboto,'Noto Sans','Segoe UI',Arial,sans-serif;">Roboto Sans</button>
+      <button type="button" class="font-btn" data-font="avenir" style="font-family:Avenir,'Avenir Next','Segoe UI',Arial,sans-serif;">Avenir</button>
+      <button type="button" class="font-btn" data-font="helvetica" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">Helvetica</button>
     </div>
 
     <div class="section-label" data-i18n="settingsTariffsTitle">Тарифы за единицу</div>
@@ -489,6 +506,7 @@ function defaultState(){
   return {
     settings:{
       lang:'ru',
+      font:'system',
       tariffs:{ electricity:0, water:0, gas:0 },
       initial:{ date:'2026-07-24', electricity:0, water:0, gas:0 },
       fixed:[
@@ -541,6 +559,7 @@ function loadState(){
     if(!parsed || !parsed.settings || !Array.isArray(parsed.periods)) return defaultState();
     parsed.settings.fixed = migrateFixedCategories(parsed.settings.fixed);
     parsed.settings.lang = (parsed.settings.lang === 'uk') ? 'uk' : 'ru';
+    parsed.settings.font = ['roboto','avenir','helvetica'].includes(parsed.settings.font) ? parsed.settings.font : 'system';
     return parsed;
   }catch(e){ return defaultState(); }
 }
@@ -567,6 +586,8 @@ const I18N = {
     subOverview:'коммунальные платежи', subPeriods:'Показания и расходы по датам', subSettings:'Тарифы, ставки и данные',
 
     langSectionTitle:'Язык', langRu:'Русский', langUk:'Українська',
+
+    fontSectionTitle:'Шрифт', fontSystem:'Системный',
 
     settingsTariffsTitle:'Тарифы за единицу',
     labelElectric:'Свет', labelWater:'Вода', labelGas:'Газ',
@@ -683,6 +704,8 @@ const I18N = {
 
     langSectionTitle:'Мова', langRu:'Русский', langUk:'Українська',
 
+    fontSectionTitle:'Шрифт', fontSystem:'Системний',
+
     settingsTariffsTitle:'Тарифи за одиницю',
     labelElectric:'Світло', labelWater:'Вода', labelGas:'Газ',
     unitElecTariff:'грн / кВт·год', unitVolTariff:'грн / м³',
@@ -793,6 +816,10 @@ const I18N = {
   }
 };
 function curLang(){ return (state.settings && state.settings.lang === 'uk') ? 'uk' : 'ru'; }
+function curFont(){
+  const f = state.settings && state.settings.font;
+  return (f === 'roboto' || f === 'avenir' || f === 'helvetica') ? f : 'system';
+}
 function localeTag(){ return curLang() === 'uk' ? 'uk-UA' : 'ru-RU'; }
 function t(key, vars){
   const dict = I18N[curLang()] || I18N.ru;
@@ -815,6 +842,8 @@ function applyStaticI18n(){
     $(this).html(t(key));
   });
   $('#langSwitch .lang-btn').removeClass('active').filter('[data-lang="'+curLang()+'"]').addClass('active');
+  applyFont();
+  $('#fontSwitch .font-btn').removeClass('active').filter('[data-font="'+curFont()+'"]').addClass('active');
   const titles = tabTitles()[currentTab];
   $('#topbarTitle').text(titles[0]);
   $('#topbarSub').text(titles[1]);
@@ -828,6 +857,18 @@ function setLang(lang){
   populateSettingsForm();
   refreshComputedScreens();
 }
+function applyFont(){
+  document.documentElement.classList.remove('font-roboto', 'font-avenir', 'font-helvetica');
+  const f = curFont();
+  if(f !== 'system') document.documentElement.classList.add('font-'+f);
+}
+function setFont(font){
+  const next = (font === 'roboto' || font === 'avenir' || font === 'helvetica') ? font : 'system';
+  if(curFont() === next) return;
+  state.settings.font = next;
+  scheduleSave();
+  applyStaticI18n();
+}
 
 /* ============================= HELPERS ============================= */
 function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
@@ -837,7 +878,12 @@ function fmtNum(n){
   const opts = (Math.abs(n % 1) < 1e-9) ? {maximumFractionDigits:0} : {minimumFractionDigits:2, maximumFractionDigits:2};
   return new Intl.NumberFormat(localeTag(), opts).format(n);
 }
-function fmtMoney(n){ return fmtNum(n) + ' грн'; }
+/* Money sums are always displayed rounded UP to the nearest whole unit (kopecks are never shown).
+   round2() first snaps to cents so float noise (e.g. 100.00000000000001) can't push an
+   already-whole amount up by 1 before the final ceil. */
+function ceilMoney(n){ return Math.ceil(round2(n) - 1e-9) || 0; }
+function fmtMoneyNum(n){ return new Intl.NumberFormat(localeTag(), {maximumFractionDigits:0}).format(ceilMoney(n)); }
+function fmtMoney(n){ return fmtMoneyNum(n) + ' грн'; }
 function fmtDate(iso){
   if(!iso) return '—';
   const d = new Date(iso + 'T00:00:00');
@@ -1043,7 +1089,7 @@ function renderMeterRow(icon, accentClass, name, unit, prevVal, curVal, util, ca
         '<div class="meter-field"><label>'+t('meterPrev')+'</label><div class="meter-static tabular">'+fmtNum(prevVal)+'</div></div>'+
         '<div class="meter-field"><label>'+t('meterCur')+'</label><div class="meter-input-box"><input type="number" inputmode="decimal" step="0.01" class="meter-input tabular" data-util="'+util+'" data-period-id="'+periodId+'" value="'+curVal+'"></div></div>'+
         '<div class="meter-field"><label>'+t('meterCons')+'</label><div class="meter-static calc tabular">'+fmtNum(cons)+'</div></div>'+
-        '<div class="meter-field"><label>'+t('meterSum')+'</label><div class="meter-static calc tabular '+accentClass+'">'+fmtNum(amount)+'</div></div>'+
+        '<div class="meter-field"><label>'+t('meterSum')+'</label><div class="meter-static calc tabular '+accentClass+'">'+fmtMoneyNum(amount)+'</div></div>'+
       '</div>'+
       (negWarn ? '<div class="meter-warn">'+ICONS.warn+' '+t('meterWarn')+'</div>' : '')+
     '</div>'
@@ -1169,6 +1215,9 @@ function refreshComputedScreens(){
 function bindSettings(){
   $(document).on('click', '#langSwitch .lang-btn', function(){
     setLang($(this).data('lang'));
+  });
+  $(document).on('click', '#fontSwitch .font-btn', function(){
+    setFont($(this).data('font'));
   });
 
   const bindings = [
